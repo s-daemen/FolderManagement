@@ -29,6 +29,11 @@ namespace SD.FolderManagement.Utility {
             return Application.dataPath;
         }
 
+        public static string GetDirectoryName(string path)
+        {
+           return Path.GetDirectoryName(path);
+        }
+
         #endregion
 
         #region Folder Creation

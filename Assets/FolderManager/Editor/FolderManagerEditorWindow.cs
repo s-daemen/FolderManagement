@@ -1,32 +1,31 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
-using SD.FolderManagement;
 using SD.FolderManagement.Model;
 using SD.FolderManagement.Utility;
 using UnityEditor.IMGUI.Controls;
 
 namespace SD.FolderManagement.Editor {
 
-    internal class FolderManagerEditorWindow : EditorWindow {
+    public class FolderManagerEditorWindow : EditorWindow {
 
         private static FolderManagerEditorWindow _editor;
         private Vector2 _createScrollPosition;
         private Vector2 _scrollPosition;
 
+        public static FolderTreeCache folderTreeCache;
+
         [NonSerialized]
         private bool _initialized;
 
         [SerializeField]
-        private TreeViewState _treeViewState;
+        private FolderTreeViewState _treeViewState;
 
         [SerializeField]
         private MultiColumnHeaderState _multiColumnHeaderState;
         private SearchField _searchField;
         private FolderTreeView _treeView;
-        private FolderTreeAsset _asset;
 
         #region Properties
 
@@ -56,7 +55,7 @@ namespace SD.FolderManagement.Editor {
             _editor.titleContent = new GUIContent("FolderManager", "Make your life suck a little less!");
             _editor.Focus();
             _editor.Repaint();
-            FolderManager.Initialize();
+            FolderManager.ReInit();
             return _editor;
         }
 
@@ -64,12 +63,40 @@ namespace SD.FolderManagement.Editor {
 
         private void OnEnable() {
             _editor = this;
+            FolderManager.Initialize();
+
+            FolderManager.ClientRepaints -= Repaint;
+            FolderManager.ClientRepaints += Repaint;
+
             SceneView.onSceneGUIDelegate -= OnSceneGUI;
             SceneView.onSceneGUIDelegate += OnSceneGUI;
+
+            FolderManagerCallbacks.OnAddElement -= ElementAdded;
+            FolderManagerCallbacks.OnAddElement += ElementAdded;
+
+            FolderManagerCallbacks.OnDeleteElement -= ElementAdded;
+            FolderManagerCallbacks.OnDeleteElement += ElementAdded;
+
+            folderTreeCache = new FolderTreeCache(DirectoryUtility.GetDirectoryName(AssetDatabase.GetAssetPath(MonoScript.FromScriptableObject(this))));
+            folderTreeCache.SetupCacheEvents();
+        }
+
+        private void ElementAdded(FolderTreeElement obj) {
+            _initialized = false;
         }
 
         private void OnDestroy() {
+            EditorUtility.SetDirty(folderTreeCache.FolderTree);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+
+            FolderManagerCallbacks.OnAddElement -= ElementAdded;
+            FolderManagerCallbacks.OnDeleteElement -= ElementAdded;
+
+            FolderManager.ClientRepaints -= Repaint;
             SceneView.onSceneGUIDelegate -= OnSceneGUI;
+
+            folderTreeCache.ClearCacheEvents();
         }
 
         private void OnSceneGUI(SceneView sceneView) {
@@ -82,9 +109,9 @@ namespace SD.FolderManagement.Editor {
 
         private void Initialize() {
             if (!_initialized) {
-                if (_asset == null) return;
+                if (folderTreeCache.FolderTree == null) return;
                 if (_treeViewState == null) {
-                    _treeViewState = new TreeViewState();
+                    _treeViewState = new FolderTreeViewState();
                 }
                 bool firstInit = _multiColumnHeaderState == null;
                 var headerState = FolderTreeView.CreateDefaultMultiColumnHeaderState(FolderTreeViewRect().width);
@@ -99,41 +126,37 @@ namespace SD.FolderManagement.Editor {
 
                 var treeModel = new TreeModel<FolderTreeElement>(GetData());
                 _treeView = new FolderTreeView(_treeViewState, multiColumnHeader, treeModel);
+                _treeViewState.View = _treeView;
+                _treeViewState.Cache = folderTreeCache;
                 _searchField = new SearchField();
                 _searchField.downOrUpArrowKeyPressed += _treeView.SetFocusAndEnsureSelectedItem;
                 _initialized = true;
             }
         }
 
+
+
         private IList<FolderTreeElement> GetData() {
-            if (_asset != null && _asset.TreeElements != null && _asset.TreeElements.Count > 0) {
-                return _asset.TreeElements;
+            if (folderTreeCache.FolderTree != null && folderTreeCache.FolderTree.TreeElements != null && folderTreeCache.FolderTree.TreeElements.Count > 0) {
+                return folderTreeCache.FolderTree.TreeElements;
+
             } else {
                 return null;
             }
-            //  return new List<FolderTreeElement>() { new FolderTreeElement("NAME", -1, 1), new FolderTreeElement("Test", 0, 2), new FolderTreeElement("DOD", 0, 3) };
+
         }
         #endregion
 
-        private void OnSelectionChange() {
-            if (!_initialized) {
-                return;
+        [UnityEditor.Callbacks.OnOpenAsset(1)]
+        private static bool AutoOpenCanvas(int instanceID, int line) {
+            if (Selection.activeObject != null && Selection.activeObject is FolderTree) {
+                string NodeCanvasPath = AssetDatabase.GetAssetPath(instanceID);
+                FolderManagerEditorWindow.OpenEditor();
+                folderTreeCache.LoadFolderTree(NodeCanvasPath);
+                return true;
             }
-            var treeAsset = Selection.activeObject as FolderTreeAsset;
-
-            if (treeAsset != null && treeAsset != _asset) {
-                _asset = treeAsset;
-                _treeView.TreeModel.SetData(GetData());
-                _treeView.Reload();
-            }
+            return false;
         }
-
-        private void SetTreeAsset(FolderTreeAsset treeAsset) {
-            _asset = treeAsset;
-            _initialized = false;
-        }
-
-
 
         private Rect FolderTreeViewRect() {
             return new Rect(20, 30, 350, 300);
@@ -147,18 +170,21 @@ namespace SD.FolderManagement.Editor {
             return new Rect(20f, position.height - 18f, position.width - 40f, 16f);
         }
 
-
-
         private void OnGUI() {
             GetEditor();
+            folderTreeCache.AssureFolderTree();
+
             Initialize();
             if (WindowUtility.ShouldShowWindow()) {
                 FolderManagerGUI.Title("FolderManager");
                 EditorGUILayout.Space();
-
+                PopupManager.StartPopupGUI();
                 ShowContextSettings();
                 ShowFolderStructureWindow();
+                FMInputManager.HandleInputEvents(_treeViewState);
 
+                FMInputManager.HandleLateInputEvents(_treeViewState);
+                PopupManager.EndPopupGUI();
             }
         }
 
@@ -174,7 +200,7 @@ namespace SD.FolderManagement.Editor {
             FolderManagerGUI.Title(positionCheck, "Manage folder tree");
             _createScrollPosition = GUILayout.BeginScrollView(_createScrollPosition, "HelpBox", GUILayout.MaxHeight(350), GUILayout.MaxWidth(maxWidth));
 
-            if (_asset != null) {
+            if (folderTreeCache.FolderTree != null) {
                 SearchBar(ToolbarRect());
             }
             DrawCurrentTree(FolderTreeViewRect());
@@ -194,8 +220,7 @@ namespace SD.FolderManagement.Editor {
         }
 
         private void DrawCurrentTree(Rect rect) {
-            if (_asset == null) {
-                //      EditorUtility.DisplayDialog("Select Texture", "You must select a texture first!", "OK");
+            if (folderTreeCache.FolderTree == null) {
                 EditorGUILayout.LabelField("You need to select or create a folder tree first!");
                 return;
             }
@@ -210,41 +235,40 @@ namespace SD.FolderManagement.Editor {
             newPosition.x += newPosition.width / 2;
             newPosition.height = controlHeight;
             newPosition.y += controlHeight;
-            if (GUI.Button(newPosition, "Create new tree")) {
-                //     object userData;
-                // EditorUtility.DisplayCustomMenu(new Rect(20,20,50,50),"Box", 0, Callback, userData));
-            }
-            newPosition.y += controlHeight;
+            if (GUILayout.Button(new GUIContent("Create Folder Tree", "Create a Folder Tree")))
+            {
+                folderTreeCache.LoadFolderTree("");
 
-            if (GUI.Button(newPosition, "Load Tree")) {
-                string path = EditorUtility.OpenFilePanel("", "", "asset");
-                if (path.Length != 0) {
-                    WWW www = new WWW("file:///" + path);
-                    Debug.Log(www.text);
+                _initialized = false;
+            }
+
+
+
+            if (GUILayout.Button(new GUIContent("Load Folder Tree", "Loads the Folder Tree from a Save File in the Assets Folder"))) {
+                string path = EditorUtility.OpenFilePanel("Load Folder Tree", FolderManager.SavesFolderPath(), "asset");
+                if (!path.Contains(DirectoryUtility.GetAppDataPath())) {
+                    if (!string.IsNullOrEmpty(path))
+                        ShowNotification(new GUIContent("You should select an asset inside your project folder!"));
+                } else {
+                    folderTreeCache.LoadFolderTree(path);
+                    _initialized = false;
                 }
+
             }
-            newPosition.y += controlHeight;
-            Rect windowRect = new Rect(100, 100, 200, 200);
-            BeginWindows();
 
-            // All GUI.Window or GUILayout.Window must come inside here
-            windowRect = GUILayout.Window(1, windowRect, DoWindow, "Hi There");
-
-            EndWindows();
-            if (GUI.Button(newPosition, "Load Tree")) {
-              
+            if (GUILayout.Button(new GUIContent("Save Folder Tree", "Saves the Folder Tree in the Assets Folder"))) {
+                string path = EditorUtility.SaveFilePanelInProject("Save Folder Tree", "Folder Tree", "asset", "", FolderManager.SavesFolderPath());
+                if (!string.IsNullOrEmpty(path))
+                    folderTreeCache.SaveFolderTree(path);
+                _initialized = false;
             }
-            
 
-        }
+            if (GUILayout.Button(new GUIContent("Generate Folder Tree", "Generates the Folder Tree")))
+            {
+                FolderManager.Generate(folderTreeCache.FolderTree);
+            }
 
-        private void DoWindow(int unusedWindowID) {
-            GUILayout.Button("Hi");
-            GUI.DragWindow();
-        }
 
-        private void Callback(object userData, string[] options, int selected) {
-            throw new NotImplementedException();
         }
 
         private void ShowFolderStructureWindow() {

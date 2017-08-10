@@ -82,6 +82,33 @@ namespace SD.FolderManagement {
 
         #endregion
 
+        #region Seperator 
+
+        private static GUIStyle _seperator;
+
+        public static void Seperator() {
+            SetupSeperator();
+            GUILayout.Box(GUIContent.none, _seperator, new GUILayoutOption[] { GUILayout.Height(1) });
+        }
+
+        public static void Seperator(Rect rect) {
+            SetupSeperator();
+            GUI.Box(new Rect(rect.x, rect.y, rect.width, 1), GUIContent.none, _seperator);
+        }
+
+        private static void SetupSeperator() {
+            if (_seperator == null) {
+                _seperator = new GUIStyle
+                {
+                    normal = {background = CreatePixelTexture(1, new Color(0.6f, 0.6f, 0.6f))},
+                    stretchWidth = true,
+                    margin = new RectOffset(0, 0, 7, 7)
+                };
+            }
+        }
+
+        #endregion
+
         public static Texture2D CreatePixelTexture(string name, Color color) {
             var tex = new Texture2D(1, 1, TextureFormat.ARGB32, false);
             tex.name = name;
@@ -91,5 +118,15 @@ namespace SD.FolderManagement {
             tex.Apply();
             return tex;
         }
+
+        public static Texture2D CreatePixelTexture(int pxSize, Color col) {
+            var tex = new Texture2D(pxSize, pxSize);
+            for (int x = 0; x < pxSize; x++)
+            for (int y = 0; y < pxSize; y++)
+                tex.SetPixel(x, y, col);
+            tex.Apply();
+            return tex;
+        }
+
     }
 }

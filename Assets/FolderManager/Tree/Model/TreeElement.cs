@@ -1,23 +1,27 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace SD.FolderManagement.Model {
-
     [Serializable]
     public class TreeElement {
+        [NonSerialized] private List<TreeElement> _children;
 
-        [SerializeField]
-        private int _id;
-        [SerializeField]
-        private string _name;
-        [SerializeField]
-        private int _depth;
-        [NonSerialized]
-        private TreeElement _parent;
-        [NonSerialized]
-        private List<TreeElement> _children;
+        [SerializeField] private int _depth;
+
+        [SerializeField] private int _id;
+
+        [SerializeField] private string _name;
+
+        [NonSerialized] private TreeElement _parent;
+
+        public TreeElement() { }
+
+        public TreeElement(string name, int depth, int id) {
+            _name = name;
+            _id = id;
+            _depth = depth;
+        }
 
         #region Properties
 
@@ -51,13 +55,5 @@ namespace SD.FolderManagement.Model {
         }
 
         #endregion
-
-        public TreeElement() { }
-
-        public TreeElement(string name, int depth, int id) {
-            _name = name;
-            _id = id;
-            _depth = depth;
-        }
     }
 }

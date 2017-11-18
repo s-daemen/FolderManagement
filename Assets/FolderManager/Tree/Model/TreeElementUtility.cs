@@ -4,9 +4,7 @@ using System.Linq;
 using NUnit.Framework;
 using UnityEditor;
 
-
 namespace SD.FolderManagement.Model {
-
     // TreeElementUtility and TreeElement are useful helper classes for backend tree data structures.
     // See tests at the bottom for examples of how to use.
 
@@ -16,18 +14,15 @@ namespace SD.FolderManagement.Model {
                 throw new NullReferenceException("The input 'IList<T> result' list is null");
             result.Clear();
 
-            Stack<T> stack = new Stack<T>();
+            var stack = new Stack<T>();
             stack.Push(root);
 
             while (stack.Count > 0) {
-                T current = stack.Pop();
+                var current = stack.Pop();
                 result.Add(current);
 
-                if (current.Children != null && current.Children.Count > 0) {
-                    for (int i = current.Children.Count - 1; i >= 0; i--) {
-                        stack.Push((T)current.Children[i]);
-                    }
-                }
+                if (current.Children != null && current.Children.Count > 0)
+                    for (var i = current.Children.Count - 1; i >= 0; i--) stack.Push((T) current.Children[i]);
             }
         }
 
@@ -45,20 +40,20 @@ namespace SD.FolderManagement.Model {
             }
 
             // Set child and Parent references using Depth info
-            for (int ParentIndex = 0; ParentIndex < list.Count; ParentIndex++) {
-                var Parent = list[ParentIndex];
-                bool alreadyHasValidChildren = Parent.Children != null;
+            for (var parentIndex = 0; parentIndex < list.Count; parentIndex++) {
+                var parent = list[parentIndex];
+                var alreadyHasValidChildren = parent.Children != null;
                 if (alreadyHasValidChildren)
                     continue;
 
-                int ParentDepth = Parent.Depth;
-                int childCount = 0;
+                var parentDepth = parent.Depth;
+                var childCount = 0;
 
                 // Count Children based Depth value, we are looking at Children until it's the same Depth as this object
-                for (int i = ParentIndex + 1; i < list.Count; i++) {
-                    if (list[i].Depth == ParentDepth + 1)
+                for (var i = parentIndex + 1; i < list.Count; i++) {
+                    if (list[i].Depth == parentDepth + 1)
                         childCount++;
-                    if (list[i].Depth <= ParentDepth)
+                    if (list[i].Depth <= parentDepth)
                         break;
                 }
 
@@ -67,19 +62,19 @@ namespace SD.FolderManagement.Model {
                 if (childCount != 0) {
                     childList = new List<TreeElement>(childCount); // Allocate once
                     childCount = 0;
-                    for (int i = ParentIndex + 1; i < list.Count; i++) {
-                        if (list[i].Depth == ParentDepth + 1) {
-                            list[i].Parent = Parent;
+                    for (var i = parentIndex + 1; i < list.Count; i++) {
+                        if (list[i].Depth == parentDepth + 1) {
+                            list[i].Parent = parent;
                             childList.Add(list[i]);
                             childCount++;
                         }
 
-                        if (list[i].Depth <= ParentDepth)
+                        if (list[i].Depth <= parentDepth)
                             break;
                     }
                 }
 
-                Parent.Children = childList;
+                parent.Children = childList;
             }
 
             return list[0];
@@ -88,21 +83,28 @@ namespace SD.FolderManagement.Model {
         // Check state of input list
         public static void ValidateDepthValues<T>(IList<T> list) where T : TreeElement {
             if (list.Count == 0)
-                throw new ArgumentException("list should have items, count is 0, check before calling ValidateDepthValues", "list");
+                throw new ArgumentException(
+                    "list should have items, count is 0, check before calling ValidateDepthValues", "list");
 
             if (list[0].Depth != -1)
-                throw new ArgumentException("list item at index 0 should have a Depth of -1 (since this should be the hidden root of the tree). Depth is: " + list[0].Depth, "list");
+                throw new ArgumentException(
+                    "list item at index 0 should have a Depth of -1 (since this should be the hidden root of the tree). Depth is: " +
+                    list[0].Depth, "list");
 
-            for (int i = 0; i < list.Count - 1; i++) {
-                int Depth = list[i].Depth;
-                int nextDepth = list[i + 1].Depth;
-                if (nextDepth > Depth && nextDepth - Depth > 1)
-                    throw new ArgumentException(string.Format("Invalid Depth info in input list. Depth cannot increase more than 1 per row. Index {0} has Depth {1} while index {2} has Depth {3}", i, Depth, i + 1, nextDepth));
+            for (var i = 0; i < list.Count - 1; i++) {
+                var depth = list[i].Depth;
+                var nextDepth = list[i + 1].Depth;
+                if (nextDepth > depth && nextDepth - depth > 1)
+                    throw new ArgumentException(
+                        string.Format(
+                            "Invalid Depth info in input list. Depth cannot increase more than 1 per row. Index {0} has Depth {1} while index {2} has Depth {3}",
+                            i, depth, i + 1, nextDepth));
             }
 
-            for (int i = 1; i < list.Count; ++i)
+            for (var i = 1; i < list.Count; ++i)
                 if (list[i].Depth < 0)
-                    throw new ArgumentException("Invalid Depth value for item at index " + i + ". Only the first item (the root) should have Depth below 0.");
+                    throw new ArgumentException("Invalid Depth value for item at index " + i +
+                                                ". Only the first item (the root) should have Depth below 0.");
 
             if (list.Count > 1 && list[1].Depth != 0)
                 throw new ArgumentException("Input list item at index 1 is assumed to have a Depth of 0", "list");
@@ -117,23 +119,22 @@ namespace SD.FolderManagement.Model {
             if (!root.HasChildren)
                 return;
 
-            Stack<TreeElement> stack = new Stack<TreeElement>();
+            var stack = new Stack<TreeElement>();
             stack.Push(root);
             while (stack.Count > 0) {
-                TreeElement current = stack.Pop();
-                if (current.Children != null) {
+                var current = stack.Pop();
+                if (current.Children != null)
                     foreach (var child in current.Children) {
                         child.Depth = current.Depth + 1;
                         stack.Push(child);
                     }
-                }
             }
         }
 
         // Returns true if there is an ancestor of child in the elements list
-        static bool IsChildOf<T>(T child, IList<T> elements) where T : TreeElement {
+        private static bool IsChildOf<T>(T child, IList<T> elements) where T : TreeElement {
             while (child != null) {
-                child = (T)child.Parent;
+                child = (T) child.Parent;
                 if (elements.Contains(child))
                     return true;
             }
@@ -144,27 +145,27 @@ namespace SD.FolderManagement.Model {
             if (elements.Count == 1)
                 return new List<T>(elements);
 
-            List<T> result = new List<T>(elements);
+            var result = new List<T>(elements);
             result.RemoveAll(g => IsChildOf(g, elements));
             return result;
         }
     }
 
 
-
-    class TreeElementUtilityTests {
-        class TestElement : TreeElement {
-            public TestElement(string name, int Depth) {
-                this.Name = name;
-                this.Depth = Depth;
+    internal class TreeElementUtilityTests {
+        private class TestElement : TreeElement {
+            public TestElement(string name, int depth) {
+                Name = name;
+                Depth = depth;
             }
         }
 
         #region Tests
+
         [Test]
         public static void TestTreeToListWorks() {
             // Arrange
-            TestElement root = new TestElement("root", -1);
+            var root = new TestElement("root", -1);
             root.Children = new List<TreeElement>();
             root.Children.Add(new TestElement("A", 0));
             root.Children.Add(new TestElement("B", 0));
@@ -177,15 +178,14 @@ namespace SD.FolderManagement.Model {
             root.Children[1].Children[0].Children.Add(new TestElement("Bchildchild", 2));
 
             // Test
-            List<TestElement> result = new List<TestElement>();
+            var result = new List<TestElement>();
             TreeElementUtility.TreeToList(root, result);
 
             // Assert
-            string[] namesInCorrectOrder = { "root", "A", "B", "Bchild", "Bchildchild", "C" };
+            string[] namesInCorrectOrder = {"root", "A", "B", "Bchild", "Bchildchild", "C"};
             Assert.AreEqual(namesInCorrectOrder.Length, result.Count, "Result count is not match");
-            for (int i = 0; i < namesInCorrectOrder.Length; ++i) {
+            for (var i = 0; i < namesInCorrectOrder.Length; ++i)
                 Assert.AreEqual(namesInCorrectOrder[i], result[i].Name);
-            }
             TreeElementUtility.ValidateDepthValues(result);
         }
 
@@ -202,7 +202,7 @@ namespace SD.FolderManagement.Model {
             list.Add(new TestElement("C", 0));
 
             // Test
-            TestElement root = TreeElementUtility.ListToTree(list);
+            var root = TreeElementUtility.ListToTree(list);
 
             // Assert
             Assert.AreEqual("root", root.Name);
@@ -221,16 +221,16 @@ namespace SD.FolderManagement.Model {
             list.Add(new TestElement("Bchild", 2));
 
             // Test
-            bool catchedException = false;
+            var catchedException = false;
             try {
                 TreeElementUtility.ListToTree(list);
-            } catch (Exception) {
+            }
+            catch (Exception) {
                 catchedException = true;
             }
 
             // Assert
             Assert.IsTrue(catchedException, "We require the root.Depth to be -1, here it is: " + list[0].Depth);
-
         }
 
         [Test]
@@ -261,26 +261,25 @@ namespace SD.FolderManagement.Model {
 
 
             // Single element
-            TestElement[] input = { b1 };
-            TestElement[] expectedResult = { b1 };
+            TestElement[] input = {b1};
+            TestElement[] expectedResult = {b1};
             var result = TreeElementUtility.FindCommonAncestorsWithinList(input).ToArray();
             Assert.IsTrue(ArrayUtility.ArrayEquals(expectedResult, result), "Single input should return single output");
 
             // Single sub tree
-            input = new[] { b1, b2 };
-            expectedResult = new[] { b1 };
+            input = new[] {b1, b2};
+            expectedResult = new[] {b1};
             result = TreeElementUtility.FindCommonAncestorsWithinList(input).ToArray();
             Assert.IsTrue(ArrayUtility.ArrayEquals(expectedResult, result), "Common ancestor should only be b1 ");
 
             // Multiple sub trees
-            input = new[] { b0, b2, f0, f2, c0 };
-            expectedResult = new[] { b0, f0, c0 };
+            input = new[] {b0, b2, f0, f2, c0};
+            expectedResult = new[] {b0, f0, c0};
             result = TreeElementUtility.FindCommonAncestorsWithinList(input).ToArray();
-            Assert.IsTrue(ArrayUtility.ArrayEquals(expectedResult, result), "Common ancestor should only be b0, f0, c0");
+            Assert.IsTrue(ArrayUtility.ArrayEquals(expectedResult, result),
+                "Common ancestor should only be b0, f0, c0");
         }
 
         #endregion
     }
-
-
 }

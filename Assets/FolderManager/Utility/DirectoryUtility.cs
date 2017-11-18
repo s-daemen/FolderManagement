@@ -1,11 +1,26 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using UnityEngine;
 
 namespace SD.FolderManagement.Utility {
     /// <summary>
-    /// This is a utility class for handling folder/directory operations
+    ///     This is a utility class for handling folder/directory operations
     /// </summary>
     public class DirectoryUtility {
+      
+        #region Folder Deletion
+
+        public static void DeleteAllFilesAndFolders(string path, bool useRecursion = true, bool isTop = true) {
+            if (!Exists(path)) return;
+
+            foreach (var file in GetFiles(path)) File.Delete(file);
+            if (useRecursion)
+                foreach (var directory in Directory.GetDirectories(path))
+                    DeleteAllFilesAndFolders(directory, useRecursion, false);
+            if (!isTop) Directory.Delete(path);
+        }
+
+        #endregion
 
         #region Lookups
 
@@ -29,9 +44,8 @@ namespace SD.FolderManagement.Utility {
             return Application.dataPath;
         }
 
-        public static string GetDirectoryName(string path)
-        {
-           return Path.GetDirectoryName(path);
+        public static string GetDirectoryName(string path) {
+            return Path.GetDirectoryName(path);
         }
 
         #endregion
@@ -42,7 +56,8 @@ namespace SD.FolderManagement.Utility {
             try {
                 Directory.CreateDirectory(path);
                 return true;
-            } catch (System.Exception exception) {
+            }
+            catch (Exception exception) {
                 Debug.LogError("Failed to create directory at path: " + path + " Error: " + exception.Message);
                 return false;
             }
@@ -56,28 +71,10 @@ namespace SD.FolderManagement.Utility {
             return Create(GetAppDataPath() + path);
         }
 
-        #endregion
-
-        #region Folder Deletion
-
-        public static void DeleteAllFilesAndFolders(string path, bool useRecursion = true, bool isTop = true) {
-
-            if (!Exists(path)) return;
-
-            foreach (string file in GetFiles(path)) {
-                File.Delete(file);
-            }
-            if (useRecursion) {
-                foreach (string directory in Directory.GetDirectories(path)) {
-                    DeleteAllFilesAndFolders(directory, useRecursion, false);
-                }
-            }
-            if (!isTop) {
-                Directory.Delete(path);
-            }
+        public static bool CheckAndCreateRelative(string path) {
+            return Exists(path) || CreateRelative(path);
         }
 
         #endregion
-
     }
 }

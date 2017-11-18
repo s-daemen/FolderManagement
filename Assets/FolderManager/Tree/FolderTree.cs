@@ -1,53 +1,36 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEditor.IMGUI.Controls;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace SD.FolderManagement {
-
     public class FolderTree : ScriptableObject {
+        [SerializeField] private List<FolderTreeElement> _treeElements = new List<FolderTreeElement>();
 
-        public virtual string TreeName {
-            get { return "Folder Tree"; }
-            set { TreeName = value; }
-        }
-
-        [SerializeField]
-        private List<FolderTreeElement> _treeElements = new List<FolderTreeElement>();
+        [SerializeField] public string TreeName = "FolderTree";
 
         public List<FolderTreeElement> TreeElements {
             get { return _treeElements; }
             set { _treeElements = value; }
         }
 
-        public void AddElement(FolderTreeElement element)
-        {
+        public void AddElement(FolderTreeElement element) {
             TreeElements.Add(element);
         }
 
         public void AddElement(string name, int depth, int id) {
-            FolderTreeElement element = new FolderTreeElement(name, depth, id);
+            var element = new FolderTreeElement(name, depth, id);
             TreeElements.Add(element);
         }
 
         public void RemoveElement(int index) {
-            if (index == 0) {
-                return;
-            }
             TreeElements.RemoveAt(index);
         }
 
         public void RemoveElement(FolderTreeElement element) {
-            if (element.Id == 0) {
-                return;
-            }
             TreeElements.Remove(element);
         }
 
         public void RemoveElements(IList<FolderTreeElement> elements) {
-            foreach (FolderTreeElement element in elements) {
-                TreeElements.Remove(element);
-            }
+            foreach (var element in elements) TreeElements.Remove(element);
         }
     }
 }

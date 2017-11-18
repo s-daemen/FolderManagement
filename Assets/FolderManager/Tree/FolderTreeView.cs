@@ -1,33 +1,23 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
+using SD.FolderManagement.Model;
 using UnityEditor;
 using UnityEditor.IMGUI.Controls;
-using UnityEditor.TreeViewExamples;
 using UnityEngine;
 using UnityEngine.Assertions;
 
 namespace SD.FolderManagement {
-
     public class FolderTreeView : TreeViewWithModel<FolderTreeElement> {
-        private const float ROW_HEIGHTS = 20f;
-        private const float TOGGLE_WIDTH = 18f;
-
-        private enum ElementColumns {
-            Icon,
-            Name,
-            Comment
-        }
-
         public enum SortOption {
             Name
         }
 
-        public bool ShowControls = true;
+        private const float ROW_HEIGHTS = 20f;
+        private const float TOGGLE_WIDTH = 18f;
 
-        private static Texture2D[] _icons = {
+
+        private static readonly Texture2D[] _icons = {
             EditorGUIUtility.FindTexture("Folder Icon"),
             EditorGUIUtility.FindTexture("AudioSource Icon"),
             EditorGUIUtility.FindTexture("Camera Icon"),
@@ -35,11 +25,30 @@ namespace SD.FolderManagement {
             EditorGUIUtility.FindTexture("GameObject Icon")
         };
 
-        private SortOption[] _sortOptions = {
+        private readonly SortOption[] _sortOptions = {
             SortOption.Name,
             SortOption.Name,
             SortOption.Name
         };
+
+        public FolderTreeView(TreeViewState state, MultiColumnHeader multicolumnHeader,
+            TreeModel<FolderTreeElement> model) : base(state, multicolumnHeader, model) {
+            Assert.AreEqual(_sortOptions.Length, Enum.GetValues(typeof(ElementColumns)).Length,
+                "Ensure number of sort options are in sync with number of MyColumns enum values");
+
+            // Custom setup
+            rowHeight = ROW_HEIGHTS;
+            columnIndexForTreeFoldouts = 1;
+            showAlternatingRowBackgrounds = true;
+            showBorder = true;
+            customFoldoutYOffset =
+                (ROW_HEIGHTS - EditorGUIUtility.singleLineHeight) *
+                0.5f; // center foldout in the row since we also center content. See RowGUI
+            extraSpaceBeforeIconAndLabel = TOGGLE_WIDTH;
+            multicolumnHeader.sortingChanged += OnSortingChanged;
+
+            Reload();
+        }
 
         public static void TreeToList(TreeViewItem root, IList<TreeViewItem> result) {
             if (root == null)
@@ -52,50 +61,27 @@ namespace SD.FolderManagement {
             if (root.children == null)
                 return;
 
-            Stack<TreeViewItem> stack = new Stack<TreeViewItem>();
-            for (int i = root.children.Count - 1; i >= 0; i--)
+            var stack = new Stack<TreeViewItem>();
+            for (var i = root.children.Count - 1; i >= 0; i--)
                 stack.Push(root.children[i]);
 
             while (stack.Count > 0) {
-                TreeViewItem current = stack.Pop();
+                var current = stack.Pop();
                 result.Add(current);
 
-                if (current.hasChildren && current.children[0] != null) {
-                    for (int i = current.children.Count - 1; i >= 0; i--) {
-                        stack.Push(current.children[i]);
-                    }
-                }
+                if (current.hasChildren && current.children[0] != null)
+                    for (var i = current.children.Count - 1; i >= 0; i--) stack.Push(current.children[i]);
             }
         }
 
         protected override void ContextClicked() {
-            SetSelection(new List<int>() { -1 });
+            SetSelection(new List<int> {-1});
             Event.current.Use();
         }
 
         protected override void ContextClickedItem(int id) {
-          //  TreeViewItem item = GetRows().FirstOrDefault(i => i.id == id);
-            
+            FindItem(id, rootItem);
             Event.current.Use();
-        }
-
-        public FolderTreeView(TreeViewState state, MultiColumnHeader multicolumnHeader,
-            Model.TreeModel<FolderTreeElement> model) : base(state, multicolumnHeader, model) {
-            Assert.AreEqual(_sortOptions.Length, Enum.GetValues(typeof(ElementColumns)).Length,
-                "Ensure number of sort options are in sync with number of MyColumns enum values");
-
-            // Custom setup
-            rowHeight = ROW_HEIGHTS;
-            columnIndexForTreeFoldouts = 2;
-            showAlternatingRowBackgrounds = true;
-            showBorder = true;
-            customFoldoutYOffset =
-                (ROW_HEIGHTS - EditorGUIUtility.singleLineHeight) *
-                0.5f; // center foldout in the row since we also center content. See RowGUI
-            extraSpaceBeforeIconAndLabel = TOGGLE_WIDTH;
-            multicolumnHeader.sortingChanged += OnSortingChanged;
-
-            Reload();
         }
 
         protected override IList<TreeViewItem> BuildRows(TreeViewItem root) {
@@ -112,9 +98,8 @@ namespace SD.FolderManagement {
             if (rows.Count <= 1)
                 return;
 
-            if (multiColumnHeader.sortedColumnIndex == -1) {
+            if (multiColumnHeader.sortedColumnIndex == -1)
                 return; // No column to sort for (just use the order the data are in)
-            }
 
             // Sort the roots of the existing tree items
             SortByMultipleColumns();
@@ -131,9 +116,9 @@ namespace SD.FolderManagement {
 
             var myTypes = rootItem.children.Cast<TreeViewItem<FolderTreeElement>>();
             var orderedQuery = InitialOrder(myTypes, sortedColumns);
-            for (int i = 1; i < sortedColumns.Length; i++) {
-                SortOption sortOption = _sortOptions[sortedColumns[i]];
-                bool ascending = multiColumnHeader.IsSortedAscending(sortedColumns[i]);
+            for (var i = 1; i < sortedColumns.Length; i++) {
+                var sortOption = _sortOptions[sortedColumns[i]];
+                var ascending = multiColumnHeader.IsSortedAscending(sortedColumns[i]);
 
                 switch (sortOption) {
                     case SortOption.Name:
@@ -149,8 +134,8 @@ namespace SD.FolderManagement {
 
         private IOrderedEnumerable<TreeViewItem<FolderTreeElement>> InitialOrder(
             IEnumerable<TreeViewItem<FolderTreeElement>> myTypes, int[] history) {
-            SortOption sortOption = _sortOptions[history[0]];
-            bool ascending = multiColumnHeader.IsSortedAscending(history[0]);
+            var sortOption = _sortOptions[history[0]];
+            var ascending = multiColumnHeader.IsSortedAscending(history[0]);
             switch (sortOption) {
                 case SortOption.Name:
                     return myTypes.Order(l => l.Data.Name, ascending);
@@ -164,15 +149,14 @@ namespace SD.FolderManagement {
         }
 
         private int GetIconIndex(TreeViewItem<FolderTreeElement> item) {
-            return (int)(Mathf.Min(0.99f, item.Data.Id) * _icons.Length);
+            return 0;
         }
 
         protected override void RowGUI(RowGUIArgs args) {
-            var item = (TreeViewItem<FolderTreeElement>)args.item;
+            var item = (TreeViewItem<FolderTreeElement>) args.item;
 
-            for (int i = 0; i < args.GetNumVisibleColumns(); ++i) {
-                CellGUI(args.GetCellRect(i), item, (ElementColumns)args.GetColumn(i), ref args);
-            }
+            for (var i = 0; i < args.GetNumVisibleColumns(); ++i)
+                CellGUI(args.GetCellRect(i), item, (ElementColumns) args.GetColumn(i), ref args);
         }
 
         private void CellGUI(Rect cellRect, TreeViewItem<FolderTreeElement> item, ElementColumns column,
@@ -181,62 +165,55 @@ namespace SD.FolderManagement {
 
             switch (column) {
                 case ElementColumns.Icon: {
-                        GUI.DrawTexture(cellRect, _icons[GetIconIndex(item)], ScaleMode.ScaleToFit);
-                        break;
-                    }
+                    GUI.DrawTexture(cellRect, _icons[GetIconIndex(item)], ScaleMode.ScaleToFit);
+                    break;
+                }
                 case ElementColumns.Name: {
-                        // Do toggle
-                        Rect toggleRect = cellRect;
-                        toggleRect.x += GetContentIndent(item);
-                        toggleRect.width = TOGGLE_WIDTH;
-                        if (toggleRect.xMax < cellRect.xMax)
-                            item.Data.Selected =
-                                EditorGUI.Toggle(toggleRect, item.Data.Selected); // hide when outside cell rect
+                    // Do toggle
+                    var toggleRect = cellRect;
+                    toggleRect.x += GetContentIndent(item);
+                    toggleRect.width = TOGGLE_WIDTH;
+                    if (toggleRect.xMax < cellRect.xMax)
+                        item.Data.Selected =
+                            EditorGUI.Toggle(toggleRect, item.Data.Selected); // hide when outside cell rect
 
-                        // Default icon and label
-                        args.rowRect = cellRect;
-                        base.RowGUI(args);
-                    }
+                    // Default icon and label
+                    args.rowRect = cellRect;
+                    base.RowGUI(args);
+                }
                     break;
                 case ElementColumns.Comment: {
-                        if (ShowControls) {
-                            cellRect.xMin += 5f;
-                            if (column == ElementColumns.Name)
-                                item.Data.Name = GUI.TextField(cellRect, item.Data.Name);
-                            if (column == ElementColumns.Comment)
-                                item.Data.Comment = GUI.TextField(cellRect, item.Data.Comment);
-                        } else {
-                            string value = "Missing";
-
-                            DefaultGUI.LabelRightAligned(cellRect, value, args.selected, args.focused);
-
-                        }
-                        break;
-                    }
+                    cellRect.xMin += 5f;
+                    if (column == ElementColumns.Name)
+                        item.Data.Name = GUI.TextField(cellRect, item.Data.Name);
+                    if (column == ElementColumns.Comment)
+                        item.Data.Comment = GUI.TextField(cellRect, item.Data.Comment);
+                    break;
+                }
             }
         }
 
         //Renaming
 
         protected override bool CanRename(TreeViewItem item) {
-            Rect renameRect = GetRenameRect(treeViewRect, 0, item);
-            return renameRect.width > 25;
+            var renameRect = GetRenameRect(treeViewRect, 0, item);
+            return renameRect.width > 25 || Event.current.button == 0;
         }
 
         protected override void RenameEnded(RenameEndedArgs args) {
             if (args.acceptedRename) {
-                FolderTreeElement element = TreeModel.Find(args.itemID);
+                var element = TreeModel.Find(args.itemID);
                 element.Name = args.newName;
                 Reload();
             }
         }
-/*
-        protected override Rect GetRenameRect(Rect rowRect, int row, TreeViewItem item) {
-            Rect cellRect = GetCellRectForTreeFoldouts(rowRect);
-            CenterRectUsingSingleLineHeight(ref cellRect);
+        /*
+                protected override Rect GetRenameRect(Rect rowRect, int row, TreeViewItem item) {
+                    Rect cellRect = GetCellRectForTreeFoldouts(rowRect);
+                    CenterRectUsingSingleLineHeight(ref cellRect);
 
-            return base.GetRenameRect(cellRect, row, item);
-        }*/
+                    return base.GetRenameRect(cellRect, row, item);
+                }*/
 
         // Misc
 
@@ -248,7 +225,7 @@ namespace SD.FolderManagement {
             var columns = new[] {
                 new MultiColumnHeaderState.Column {
                     headerContent = new GUIContent(EditorGUIUtility.FindTexture("FilterByType"),
-                        "Sed hendrerit mi enim, eu iaculis leo tincidunt at."),
+                        "Filter by folder type"),
                     contextMenuText = "Type",
                     headerTextAlignment = TextAlignment.Center,
                     sortedAscending = true,
@@ -260,7 +237,7 @@ namespace SD.FolderManagement {
                     allowToggleVisibility = true
                 },
                 new MultiColumnHeaderState.Column {
-                    headerContent = new GUIContent("Name"),
+                    headerContent = new GUIContent("Name", "Filter by name."),
                     headerTextAlignment = TextAlignment.Left,
                     sortedAscending = true,
                     sortingArrowAlignment = TextAlignment.Center,
@@ -271,7 +248,7 @@ namespace SD.FolderManagement {
                 },
                 new MultiColumnHeaderState.Column {
                     headerContent = new GUIContent("Note",
-                        "Nam at tellus ultricies ligula vehicula ornare sit amet quis metus."),
+                        "Filter by notes."),
                     headerTextAlignment = TextAlignment.Right,
                     sortedAscending = true,
                     sortingArrowAlignment = TextAlignment.Left,
@@ -287,25 +264,37 @@ namespace SD.FolderManagement {
             var state = new MultiColumnHeaderState(columns);
             return state;
         }
+
+        private enum ElementColumns {
+            Icon,
+            Name,
+            Comment
+        }
+
+        #region Lookups
+
+        public TreeViewItem GetSelectedItem() {
+            return IsSelected(state.lastClickedID) ? FindItem(state.lastClickedID, rootItem) : null;
+        }
+
+        public IList<TreeViewItem> GetSelectedItemsAsItems() {
+            return FindRows(GetSelection());
+        }
+
+        #endregion
     }
 
-    static class ExtensionMethods {
+    internal static class ExtensionMethods {
         public static IOrderedEnumerable<T> Order<T, TKey>(this IEnumerable<T> source, Func<T, TKey> selector,
             bool ascending) {
-            if (ascending) {
-                return source.OrderBy(selector);
-            } else {
-                return source.OrderByDescending(selector);
-            }
+            if (ascending) return source.OrderBy(selector);
+            return source.OrderByDescending(selector);
         }
 
         public static IOrderedEnumerable<T> ThenBy<T, TKey>(this IOrderedEnumerable<T> source, Func<T, TKey> selector,
             bool ascending) {
-            if (ascending) {
-                return source.ThenBy(selector);
-            } else {
-                return source.ThenByDescending(selector);
-            }
+            if (ascending) return source.ThenBy(selector);
+            return source.ThenByDescending(selector);
         }
     }
 }

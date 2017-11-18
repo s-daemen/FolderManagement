@@ -3,9 +3,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace SD.FolderManagement {
-
     internal static class FolderManagerResources {
-
         static FolderManagerResources() {
             GenerateSpecialTextures();
             LoadResourceAssets();
@@ -20,15 +18,17 @@ namespace SD.FolderManagement {
             grab_handle,
             remove_button,
             remove_button_active,
-            title_background,
+            title_background
         }
 
         /// <summary>
-        /// Resource assets for light skin.
+        ///     Resource assets for light skin.
         /// </summary>
         /// <remarks>
-        /// <para>Resource assets are PNG images which have been encoded using a base-64
-        /// string so that actual asset files are not necessary.</para>
+        ///     <para>
+        ///         Resource assets are PNG images which have been encoded using a base-64
+        ///         string so that actual asset files are not necessary.
+        ///     </para>
         /// </remarks>
         private static string[] s_LightSkin = {
             "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAQCAYAAAABOs/SAAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAZdEVYdFNvZnR3YXJlAEFkb2JlIEltYWdlUmVhZHlxyWU8AAAAW0lEQVRIS+3NywnAQAhF0anI4mzVCmzBBl7QEBgGE5JFhBAXd+OHM5gZZgYRKcktNxu+HRFF2e6qhtOjtQM7K/tZ+xY89wSbazg9eqOfw6oag4rcChjY8coAjA2l1RxFDY8IFAAAAABJRU5ErkJggg==",
@@ -41,11 +41,13 @@ namespace SD.FolderManagement {
         };
 
         /// <summary>
-        /// Resource assets for dark skin.
+        ///     Resource assets for dark skin.
         /// </summary>
         /// <remarks>
-        /// <para>Resource assets are PNG images which have been encoded using a base-64
-        /// string so that actual asset files are not necessary.</para>
+        ///     <para>
+        ///         Resource assets are PNG images which have been encoded using a base-64
+        ///         string so that actual asset files are not necessary.
+        ///     </para>
         /// </remarks>
         private static string[] s_DarkSkin = {
             "iVBORw0KGgoAAAANSUhEUgAAAB4AAAAQCAYAAAABOs/SAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAIBJREFUeNpiVFZW/u/i4sLw4sULBnoACQkJhj179jAwMQwQGHoWl5aWgvHI8TGlgIXU4MUn1t3dPcx8HB8fD2cvXLgQQ0xHR4c2FmMzmBTLhl5QYwt2cn1MtsXkWjg4gvrt27fgWoMeAGQXCDD+//+fQUVF5T89fXvnzh1GgAADAFmSI1Ed3FqgAAAAAElFTkSuQmCC",
@@ -58,49 +60,49 @@ namespace SD.FolderManagement {
         };
 
         /// <summary>
-        /// Gets light or dark texture "add_button.png".
+        ///     Gets light or dark texture "add_button.png".
         /// </summary>
         public static Texture2D texAddButton {
             get { return s_Cached[(int) ResourceName.add_button]; }
         }
 
         /// <summary>
-        /// Gets light or dark texture "add_button_active.png".
+        ///     Gets light or dark texture "add_button_active.png".
         /// </summary>
         public static Texture2D texAddButtonActive {
             get { return s_Cached[(int) ResourceName.add_button_active]; }
         }
 
         /// <summary>
-        /// Gets light or dark texture "container_background.png".
+        ///     Gets light or dark texture "container_background.png".
         /// </summary>
         public static Texture2D texContainerBackground {
             get { return s_Cached[(int) ResourceName.container_background]; }
         }
 
         /// <summary>
-        /// Gets light or dark texture "grab_handle.png".
+        ///     Gets light or dark texture "grab_handle.png".
         /// </summary>
         public static Texture2D texGrabHandle {
             get { return s_Cached[(int) ResourceName.grab_handle]; }
         }
 
         /// <summary>
-        /// Gets light or dark texture "remove_button.png".
+        ///     Gets light or dark texture "remove_button.png".
         /// </summary>
         public static Texture2D texRemoveButton {
             get { return s_Cached[(int) ResourceName.remove_button]; }
         }
 
         /// <summary>
-        /// Gets light or dark texture "remove_button_active.png".
+        ///     Gets light or dark texture "remove_button_active.png".
         /// </summary>
         public static Texture2D texRemoveButtonActive {
             get { return s_Cached[(int) ResourceName.remove_button_active]; }
         }
 
         /// <summary>
-        /// Gets light or dark texture "title_background.png".
+        ///     Gets light or dark texture "title_background.png".
         /// </summary>
         public static Texture2D texTitleBackground {
             get { return s_Cached[(int) ResourceName.title_background]; }
@@ -113,7 +115,7 @@ namespace SD.FolderManagement {
         public static Texture2D texItemSplitter { get; private set; }
 
         /// <summary>
-        /// Generate special textures.
+        ///     Generate special textures.
         /// </summary>
         private static void GenerateSpecialTextures() {
             var splitterColor = EditorGUIUtility.isProSkin
@@ -124,12 +126,12 @@ namespace SD.FolderManagement {
         }
 
         /// <summary>
-        /// Create 1x1 pixel texture of specified color.
+        ///     Create 1x1 pixel texture of specified color.
         /// </summary>
         /// <param name="name">Name for texture object.</param>
         /// <param name="color">Pixel color.</param>
         /// <returns>
-        /// The new <c>Texture2D</c> instance.
+        ///     The new <c>Texture2D</c> instance.
         /// </returns>
         public static Texture2D CreatePixelTexture(string name, Color color) {
             var tex = new Texture2D(1, 1, TextureFormat.ARGB32, false);
@@ -148,16 +150,16 @@ namespace SD.FolderManagement {
         private static Texture2D[] s_Cached;
 
         /// <summary>
-        /// Read textures from base-64 encoded strings. Automatically selects assets based
-        /// upon whether the light or dark (pro) skin is active.
+        ///     Read textures from base-64 encoded strings. Automatically selects assets based
+        ///     upon whether the light or dark (pro) skin is active.
         /// </summary>
         private static void LoadResourceAssets() {
             var skin = EditorGUIUtility.isProSkin ? s_DarkSkin : s_LightSkin;
             s_Cached = new Texture2D[skin.Length];
 
-            for (int i = 0; i < s_Cached.Length; ++i) {
+            for (var i = 0; i < s_Cached.Length; ++i) {
                 // Get image data (PNG) from base64 encoded strings.
-                byte[] imageData = Convert.FromBase64String(skin[i]);
+                var imageData = Convert.FromBase64String(skin[i]);
 
                 // Gather image size from image data.
                 int texWidth, texHeight;
@@ -178,7 +180,7 @@ namespace SD.FolderManagement {
         }
 
         /// <summary>
-        /// Read width and height if PNG file in pixels.
+        ///     Read width and height if PNG file in pixels.
         /// </summary>
         /// <param name="imageData">PNG image data.</param>
         /// <param name="width">Width of image in pixels.</param>
@@ -193,6 +195,5 @@ namespace SD.FolderManagement {
         }
 
         #endregion
-
     }
 }

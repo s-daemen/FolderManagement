@@ -1,32 +1,23 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
-using UnityEngine.WSA;
 
 namespace SD.FolderManagement.Model {
-
     public class TreeModel<T> where T : TreeElement {
-
-        public event Action ModelChanged;
-
         private IList<T> _data;
-        private T _root;
         private int _maxId;
 
-        public T Root {
-            get { return _root; }
-            set { _root = value; }
+        public TreeModel(IList<T> data) {
+            SetData(data);
         }
+
+        public T Root { get; set; }
 
         public int NumberOfElements {
             get { return _data.Count; }
         }
 
-        public TreeModel(IList<T> data) {
-            SetData(data);
-        }
+        public event Action ModelChanged;
 
         public T Find(int id) {
             return _data.FirstOrDefault(element => element.Id == id);
@@ -37,14 +28,11 @@ namespace SD.FolderManagement.Model {
         }
 
         private void Initialize(IList<T> data) {
-            if (data == null) {
+            if (data == null)
                 throw new ArgumentNullException("data", "Input data is null. Ensure input is a non-null list.");
-            }
 
             _data = data;
-            if (_data.Count > 0) {
-                _root = TreeElementUtility.ListToTree(data);
-            }
+            if (_data.Count > 0) Root = TreeElementUtility.ListToTree(data);
             _maxId = _data.Max(e => e.Id);
         }
 
@@ -53,37 +41,32 @@ namespace SD.FolderManagement.Model {
         }
 
         public IList<int> GetAncestors(int id) {
-            List<int> parents = new List<int>();
+            var parents = new List<int>();
             TreeElement T = Find(id);
-            if (T != null) {
+            if (T != null)
                 while (T.Parent != null) {
                     parents.Add(T.Parent.Id);
                     T = T.Parent;
                 }
-            }
             return parents;
         }
 
         public IList<int> GetDescendantsThatHaveChildren(int id) {
-            T searchFromThis = Find(id);
-            if (searchFromThis != null) {
-                return GetParentsBelowStackBased(searchFromThis);
-            }
+            var searchFromThis = Find(id);
+            if (searchFromThis != null) return GetParentsBelowStackBased(searchFromThis);
             return new List<int>();
         }
 
-        IList<int> GetParentsBelowStackBased(TreeElement searchFromThis) {
-            Stack<TreeElement> stack = new Stack<TreeElement>();
+        private IList<int> GetParentsBelowStackBased(TreeElement searchFromThis) {
+            var stack = new Stack<TreeElement>();
             stack.Push(searchFromThis);
 
             var parentsBelow = new List<int>();
             while (stack.Count > 0) {
-                TreeElement current = stack.Pop();
+                var current = stack.Pop();
                 if (current.HasChildren) {
                     parentsBelow.Add(current.Id);
-                    foreach (var T in current.Children) {
-                        stack.Push(T);
-                    }
+                    foreach (var T in current.Children) stack.Push(T);
                 }
             }
             return parentsBelow;
@@ -96,7 +79,7 @@ namespace SD.FolderManagement.Model {
 
         public void RemoveElements(IList<T> elements) {
             foreach (var element in elements)
-                if (element == _root)
+                if (element == Root)
                     throw new ArgumentException("It is not allowed to remove the root element");
 
             var commonAncestors = TreeElementUtility.FindCommonAncestorsWithinList(elements);
@@ -106,7 +89,7 @@ namespace SD.FolderManagement.Model {
                 element.Parent = null;
             }
 
-            TreeElementUtility.TreeToList(_root, _data);
+            TreeElementUtility.TreeToList(Root, _data);
 
             Changed();
         }
@@ -129,7 +112,7 @@ namespace SD.FolderManagement.Model {
                 TreeElementUtility.UpdateDepthValues(element);
             }
 
-            TreeElementUtility.TreeToList(_root, _data);
+            TreeElementUtility.TreeToList(Root, _data);
 
             Changed();
         }
@@ -162,14 +145,15 @@ namespace SD.FolderManagement.Model {
             element.Parent = parent;
 
             TreeElementUtility.UpdateDepthValues(parent);
-            TreeElementUtility.TreeToList(_root, _data);
+            TreeElementUtility.TreeToList(Root, _data);
 
             Changed();
         }
 
         public void MoveElements(TreeElement parentElement, int insertionIndex, List<TreeElement> elements) {
             if (insertionIndex < 0)
-                throw new ArgumentException("Invalid input: insertionIndex is -1, client needs to decide what index elements should be reparented at");
+                throw new ArgumentException(
+                    "Invalid input: insertionIndex is -1, client needs to decide what index elements should be reparented at");
 
             // Invalid reparenting input
             if (parentElement == null)
@@ -181,8 +165,8 @@ namespace SD.FolderManagement.Model {
 
             // Remove draggedItems from their parents
             foreach (var draggedItem in elements) {
-                draggedItem.Parent.Children.Remove(draggedItem);    // remove from old parent
-                draggedItem.Parent = parentElement;                 // set new parent
+                draggedItem.Parent.Children.Remove(draggedItem); // remove from old parent
+                draggedItem.Parent = parentElement; // set new parent
             }
 
             if (parentElement.Children == null)
@@ -192,7 +176,7 @@ namespace SD.FolderManagement.Model {
             parentElement.Children.InsertRange(insertionIndex, elements);
 
             TreeElementUtility.UpdateDepthValues(Root);
-            TreeElementUtility.TreeToList(_root, _data);
+            TreeElementUtility.TreeToList(Root, _data);
 
             Changed();
         }

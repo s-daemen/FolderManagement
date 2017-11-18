@@ -1,13 +1,10 @@
 ﻿using System;
-using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 
 namespace SD.FolderManagement.Utility {
-
     public class FileUtility {
-
+    
         #region Lookups
 
         public static bool Exists(string path) {
@@ -19,22 +16,19 @@ namespace SD.FolderManagement.Utility {
         }
 
         public static string GetFileExtension(string fileName, string relativePath) {
-            string fullPath = DirectoryUtility.GetAppDataPath() + relativePath;
+            var fullPath = DirectoryUtility.GetAppDataPath() + relativePath;
 
             if (!DirectoryUtility.Exists(fullPath)) {
                 Debug.LogError("The file at the given folder path was not found!");
                 return string.Empty;
             }
 
-            string[] filesInFolder = DirectoryUtility.GetFiles(fullPath);
-            foreach (string file in filesInFolder) {
+            var filesInFolder = DirectoryUtility.GetFiles(fullPath);
+            foreach (var file in filesInFolder)
                 if (!file.EndsWith(".meta")) {
-                    string currentfileName = RemoveExtension(file);
-                    if (fileName == currentfileName) {
-                        return GetFileExtension(file);
-                    }
+                    var currentfileName = RemoveExtension(file);
+                    if (fileName == currentfileName) return GetFileExtension(file);
                 }
-            }
             return string.Empty;
         }
 
@@ -54,7 +48,8 @@ namespace SD.FolderManagement.Utility {
             try {
                 File.WriteAllText(path, data);
                 return true;
-            } catch (System.Exception exception) {
+            }
+            catch (Exception exception) {
                 Debug.LogError("Could not Save/Create file! Error: " + exception.Message);
                 return false;
             }
@@ -70,7 +65,8 @@ namespace SD.FolderManagement.Utility {
             try {
                 data = File.ReadAllText(path);
                 return true;
-            } catch (Exception exception) {
+            }
+            catch (Exception exception) {
                 data = string.Empty;
                 Debug.LogError("Could not load the content of the file: " + path + " Error: " + exception.Message);
                 return false;
@@ -81,7 +77,8 @@ namespace SD.FolderManagement.Utility {
             try {
                 File.Delete(path);
                 return true;
-            } catch (Exception exception) {
+            }
+            catch (Exception exception) {
                 Debug.LogError("Failed to delete file. Error: " + exception.Message);
                 return false;
             }

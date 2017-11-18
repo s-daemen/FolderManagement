@@ -1,40 +1,45 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using SD.FolderManagement.Utility;
+﻿using SD.FolderManagement.Utility;
+using UnityEditor;
 using UnityEngine;
 
 namespace SD.FolderManagement {
     public static class FolderManagerSaveManager {
-
         public static void SaveFolderTree(string path, FolderTree folderTree, bool createWorkingCopy) {
-
-            if (string.IsNullOrEmpty(path)) throw new UnityException("Cannot save Folder Tree: No spath specified to save the Folder Tree" + (folderTree != null ? folderTree.name : "") + " to!");
-            if (folderTree == null) throw new UnityException("Cannot save NodeCanvas: The specified NodeCanvas that should be saved to path " + path + " is null!");
-            if (!createWorkingCopy && UnityEditor.AssetDatabase.Contains(folderTree) &&
-                UnityEditor.AssetDatabase.GetAssetPath(folderTree) != path) {
+            if (string.IsNullOrEmpty(path))
+                throw new UnityException("Cannot save Folder Tree: No spath specified to save the Folder Tree" +
+                                         (folderTree != null ? folderTree.name : "") + " to!");
+            if (folderTree == null)
+                throw new UnityException(
+                    "Cannot save NodeCanvas: The specified NodeCanvas that should be saved to path " + path +
+                    " is null!");
+            if (!createWorkingCopy && AssetDatabase.Contains(folderTree) &&
+                AssetDatabase.GetAssetPath(folderTree) != path) {
                 Debug.LogError("Trying to create a duplicate save file for '" + folderTree.name + "'!");
                 return;
             }
 
             ProcessFolderTree(ref folderTree, createWorkingCopy);
-            UnityEditor.AssetDatabase.CreateAsset(folderTree, path);
-            UnityEditor.AssetDatabase.SaveAssets();
-            UnityEditor.AssetDatabase.Refresh();
+            AssetDatabase.CreateAsset(folderTree, path);
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
         }
 
         private static void ProcessFolderTree(ref FolderTree folderTree, bool createWorkingCopy) {
-                folderTree = CreateWorkingCopy(folderTree);
+            folderTree = CreateWorkingCopy(folderTree);
         }
 
         public static FolderTree LoadFolderTree(string path, bool createWorkingCopy) {
-            if (!FileUtility.Exists(path)) throw new UnityException("Cannot load the Folder Tree asset: File + '" + path + "' does not exist!");
+            if (!FileUtility.Exists(path))
+                throw new UnityException("Cannot load the Folder Tree asset: File + '" + path + "' does not exist!");
 
-            FolderTree folderTree = LoadResource<FolderTree>(path);
-            if (folderTree == null) throw new UnityException("Cannot Load Folder Tree: The file at the specified path '" + path + "' is no valid save file as it does not contain a Folder Tree!");
+            var folderTree = LoadResource<FolderTree>(path);
+            if (folderTree == null)
+                throw new UnityException("Cannot Load Folder Tree: The file at the specified path '" + path +
+                                         "' is no valid save file as it does not contain a Folder Tree!");
 
             ProcessFolderTree(ref folderTree, createWorkingCopy);
 
-            UnityEditor.AssetDatabase.Refresh();
+            AssetDatabase.Refresh();
             return folderTree;
         }
 
@@ -46,8 +51,8 @@ namespace SD.FolderManagement {
         }
 
         private static T Clone<T>(T SO) where T : ScriptableObject {
-            string soName = SO.name;
-            SO = Object.Instantiate<T>(SO);
+            var soName = SO.name;
+            SO = Object.Instantiate(SO);
             SO.name = soName;
             return SO;
         }
@@ -55,8 +60,7 @@ namespace SD.FolderManagement {
 
         public static T LoadResource<T>(string path) where T : Object {
             path = PreparePath(path);
-            return UnityEditor.AssetDatabase.LoadAssetAtPath<T>(path);
-
+            return AssetDatabase.LoadAssetAtPath<T>(path);
         }
 
         public static string PreparePath(string path) {
@@ -65,10 +69,8 @@ namespace SD.FolderManagement {
                 path = "" + path;
 
             return path;
-
         }
 
         #endregion
-
     }
 }
